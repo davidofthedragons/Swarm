@@ -2,22 +2,24 @@ package swarm;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.util.Random;
 
 import javax.swing.*;
 
-public class Swarm extends JFrame implements ActionListener {
+public class Swarm extends JFrame {
 
 	private static int FLIES = 1000;
 	private static boolean DIAGONALS = false;
 	private static final int SX = 600;
 	private static final int SY = 600;
-	private static int DELAY = 100;
+	private static int DELAY = 10;
 	private static int ADIST = 0; //Acceptable distance
 	private static int speed = 5;
 	private static boolean cls = false;
 	private static boolean RUNNING = false;
-	private Random rand = new Random(53);
+	private Random rand = new Random();
+	private BufferedImage img;
 	/*   405
 	 *   \|/
 	 *  3-*-1
@@ -29,16 +31,24 @@ public class Swarm extends JFrame implements ActionListener {
 	private SwarmPanel swarmPanel;
 	public Swarm() {
 		super("Swarm Intelligence");
-		setSize(600, 600);
+		setSize(615, 675);
 		flies = new Fly[FLIES];
 		reset();
 		createGUI();
+		img = new BufferedImage(600, 600, BufferedImage.TYPE_INT_BGR);
+		img.getGraphics().fillRect(0, 0, 600, 600);
 		Thread updater = new Thread(new Runnable() {
 			public void run() {
 				while (true) {
 					if (RUNNING) {
+						Graphics g = img.getGraphics();
+						if(cls) {
+							//g.setColor(Color.white);
+							g.fillRect(0, 0, 600, 600);
+						}
 						for (int i = 0; i < FLIES; i++) {
 							flies[i].update();
+							flies[i].draw(g);
 						}
 						swarmPanel.repaint();
 					}
@@ -57,24 +67,35 @@ public class Swarm extends JFrame implements ActionListener {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	public void reset() {
+		flies = new Fly[FLIES];
 		for(int i=0; i<FLIES; i++) {
 			flies[i] = new Fly(SX/2, SY/2, i);
-			//flies[i].setPos(0, 0);
 		}
-		//flies[0].setPos(300, 301);
-		//flies[1].setPos(300, 300);
+		flies[0].setColor(Color.red);
 	}
 	public void createGUI() {
 		JPanel optionPanel = new JPanel();
 		JLabel fLabel = new JLabel("Flies:");
 		optionPanel.add(fLabel);
 		final JTextField flyField = new JTextField(5);
+		flyField.setText(Integer.toString(FLIES));
 		flyField.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				FLIES = Integer.parseInt(flyField.getText());
+				reset();
 			}
 		});
 		optionPanel.add(flyField);
+		JLabel adLabel = new JLabel("Range:");
+		optionPanel.add(adLabel);
+		final JTextField adField = new JTextField(5);
+		adField.setText(Integer.toString(ADIST));
+		adField.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ADIST = Integer.parseInt(adField.getText());
+			}
+		});
+		optionPanel.add(adField);
 		final JCheckBox diagBox = new JCheckBox("Diagonals");
 		diagBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -82,15 +103,6 @@ public class Swarm extends JFrame implements ActionListener {
 			}
 		});
 		optionPanel.add(diagBox);
-		JLabel adLabel = new JLabel("Range:");
-		optionPanel.add(adLabel);
-		final JTextField adField = new JTextField(5);
-		adField.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				ADIST = Integer.parseInt(adField.getText());
-			}
-		});
-		optionPanel.add(adField);
 		final JCheckBox clsBox = new JCheckBox("Clear Screen");
 		clsBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -111,7 +123,17 @@ public class Swarm extends JFrame implements ActionListener {
 				}
 			}
 		});
+		stspButton.requestFocus();
 		optionPanel.add(stspButton);
+		JButton resetButton = new JButton("Reset");
+		resetButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				reset();
+				img.getGraphics().fillRect(0, 0, 600, 600);
+				swarmPanel.repaint();
+			}
+		});
+		optionPanel.add(resetButton);
 		
 		swarmPanel = new SwarmPanel();
 		
@@ -125,19 +147,10 @@ public class Swarm extends JFrame implements ActionListener {
 		}
 		
 		public void paint(Graphics g) {
-			g.setColor(Color.white);
-			if(cls) {
-				g.fillRect(0, 0, SX, SY);
-			}
-			for(int i=0; i<FLIES; i++) {
-				flies[i].draw(g);
-			}
+			g.drawImage(img, 0, 0, null);
 		}
 	}
 	
-	public void actionPerformed(ActionEvent e) {
-		
-	}
 	
 	private class Fly {
 		private int id;
@@ -222,6 +235,9 @@ public class Swarm extends JFrame implements ActionListener {
 					//System.out.println("flies[" + id + "]: #" + i + " is too close");
 					return false;
 				}
+			}
+			if(x+delx>595 || x+delx<0 || y+dely>595 || y+dely<0) {
+				return false;
 			}
 			return true;
 		}
